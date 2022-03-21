@@ -3,7 +3,7 @@ import triton
 import triton.language as tl
 
 @triton.jit
-def get_kernel(
+def gnn_kernel(
     x_ptr,
     index_ptr,
     y_ptr,
@@ -46,7 +46,7 @@ y = torch.zeros((N, C), device='cuda', dtype=torch.int)
 z = torch.zeros((N, ), device='cuda', dtype=torch.int)
 
 grid = lambda meta: (triton.cdiv(N, BLOCK_SIZE),)
-get_kernel[grid](x, index, y, z, N, C, BLOCK_SIZE)
+gnn_kernel[grid](x, index, y, z, N, C, BLOCK_SIZE)
 
 print("x:\n", x)
 print("z:\n", z)
