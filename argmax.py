@@ -20,7 +20,8 @@ def kernel0(in_ptr0, out_ptr0, xnumel, rnumel, XBLOCK : tl.constexpr, RBLOCK : t
         _tmp1 = tl.where(xmask & rmask & (_tmp1 < tmp0), tmp0, _tmp1)
     _tmp1_index_reduce = tl.reshape(tl.argmax(_tmp1, 1), [XBLOCK, 1]).to(tl.int32)
     _tmp1_index_mask = (tl.arange(0, RBLOCK)[None, :] == _tmp1_index_reduce)
-    tl.store(out_ptr0 + tl.where(_tmp1_index_mask, 0, 0), value=_tmp1_index, mask=_tmp1_index_mask&xmask)
+    outptr_index = tl.arange(0, XBLOCK)[:, None] + tl.zeros((RBLOCK,), tl.int32)[None, :]
+    tl.store(out_ptr0 + outptr_index, value=_tmp1_index, mask=_tmp1_index_mask&xmask)
     #tmp1 = tl.reshape(tl.sum(tl.where(_tmp1_index_mask, _tmp1_index, 0), 1), [XBLOCK, 1])
     #tl.store(out_ptr0 + 0 + tl.zeros(tmp1.shape, tl.int32), tmp1, xmask)
 
