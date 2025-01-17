@@ -1,0 +1,5 @@
+[tool.ruff]
+# Add your ruff configuration here
+line-length = 88
+select = ["E", "F", "W", "C90"]
+ignore = ["E501"]

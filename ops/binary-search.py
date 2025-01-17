@@ -1,32 +1,27 @@
+"""Implement binary search using Triton primitives."""
+
 import torch
-  
 import triton
 import triton.language as tl
 
+
 @triton.jit
-def binary_search(
-    x,
-    codebook,
-    BLOCK_SIZE: tl.constexpr,
-    CODE_BOOK_SIZE: tl.constexpr,
-):
-    cmp = (x[:,None] > codebook[None,:]).to(tl.int32)
+def binary_search(x, codebook, BLOCK_SIZE: tl.constexpr, CODE_BOOK_SIZE: tl.constexpr):
+    """Perform binary search over codebook values."""
+    cmp = (x[:, None] > codebook[None, :]).to(tl.int32)
     idx = tl.sum(cmp, axis=1)
-    seq = tl.arange(0, CODE_BOOK_SIZE)[None,:].broadcast_to((BLOCK_SIZE, CODE_BOOK_SIZE))
-    codebook = codebook[None,:].broadcast_to((BLOCK_SIZE, CODE_BOOK_SIZE))
-    idx = idx[:,None].broadcast_to((BLOCK_SIZE, CODE_BOOK_SIZE))
+    seq = tl.arange(0, CODE_BOOK_SIZE)[None, :].broadcast_to(
+        (BLOCK_SIZE, CODE_BOOK_SIZE)
+    )
+    codebook = codebook[None, :].broadcast_to((BLOCK_SIZE, CODE_BOOK_SIZE))
+    idx = idx[:, None].broadcast_to((BLOCK_SIZE, CODE_BOOK_SIZE))
     res = tl.sum((seq == idx) * codebook, axis=1)
     return res
 
 
 @triton.jit
-def kernel(
-    x_ptr,
-    y_ptr,
-    c_ptr,
-    BLOCK_SIZE: tl.constexpr,
-    CODE_BOOK_SIZE: tl.constexpr
-):
+def kernel(x_ptr, y_ptr, c_ptr, BLOCK_SIZE: tl.constexpr, CODE_BOOK_SIZE: tl.constexpr):
+    """Main kernel for binary search operation."""
     boffs = tl.arange(0, BLOCK_SIZE)
     coffs = tl.arange(0, CODE_BOOK_SIZE)
     x = tl.load(x_ptr + boffs)
@@ -37,7 +32,9 @@ def kernel(
 
 BLOCK_SIZE = 128
 CODE_BOOK_SIZE = 16
-codebook = torch.randint(0, 16, size=(CODE_BOOK_SIZE,), device="cuda", dtype=torch.int32)
+codebook = torch.randint(
+    0, 16, size=(CODE_BOOK_SIZE,), device="cuda", dtype=torch.int32
+)
 data = torch.randint(0, 16, size=(BLOCK_SIZE,), device="cuda", dtype=torch.int32)
 res = torch.zeros((BLOCK_SIZE,), device="cuda", dtype=torch.int32)
 codebook, _ = torch.sort(codebook)
